@@ -1,6 +1,7 @@
 export AWS_ACCESS_KEY_ID = 
 export AWS_SECRET_ACCESS_KEY = 
 export AWS_REGION=us-east-1
+export AIRFLOW_UID=50000
 
 terraform/init:
 	(cd terraform && terraform init)
@@ -54,6 +55,13 @@ docker_build_airflow_init:
 
 docker_down:
 	cd docker && docker-compose down 
+
+docker_down_vol:
+	cd docker && docker-compose down -v
+
+
+docker_system_prune:
+	cd docker && docker system prune -f
 
 docker_down_imgs:
 	cd docker && docker-compose down --rmi all
