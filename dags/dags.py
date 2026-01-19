@@ -1,18 +1,39 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.decorators import dag, task
+from airflow.hooks.base import BaseHook
+from airflow.sensors.base import PokeReturnValue
 from datetime import datetime
+from airflow.operators.python import PythonOperator
 
-def hello():
-    print("HELLO WORLD - AIRFLOW FUNCIONANDO")
+from include.stock_market.tasks import _get_stock_prices
 
-with DAG(
-    dag_id="debug_minimal",
+SYMBOL = 'NVDA'
+
+@dag(
     start_date=datetime(2024, 1, 1),
-    schedule=None,
+    schedule='@daily',
     catchup=False,
-) as dag:
+    tags=['valor_moeda']
+)
+def stock_market():
 
-    hello_task = PythonOperator(
-        task_id="hello",
-        python_callable=hello
+    @task.sensor(poke_interval=30, timeout=300, mode='poke')
+    def is_api_available() -> PokeReturnValue:
+        import requests
+
+        api = BaseHook.get_connection('stock_api')
+        url = f"{api.host}{api.extra_dejson['endpoint']}"
+        print(url)
+
+        response = requests.get(url, headers=api.extra_dejson['headers'])
+        condition = response.json()['finance']['result'] is None
+        return PokeReturnValue(is_done=condition, xcom_value=url)
+    
+    get_stock_prices = PythonOperator(
+        task_id='get_stock_prices',
+        python_callable=_get_stock_prices,
+        op_kwargs={'url': '{{ ti.xcom_pull(task_ids="is_api_available") }}', 'symbol': SYMBOL}
     )
+
+    is_api_available() >> get_stock_prices
+
+stock_market()
