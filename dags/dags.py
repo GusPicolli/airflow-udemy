@@ -17,8 +17,7 @@ SYMBOL = 'NVDA'
 def stock_market():
 
     @task.sensor(poke_interval=30, timeout=300, mode='poke')
-    def is_api_available() -> PokeReturnValue:
-        import requests
+    def is_api_available() -> PokeReturnValue:        import requests
 
         api = BaseHook.get_connection('stock_api')
         url = f"{api.host}{api.extra_dejson['endpoint']}"
@@ -34,6 +33,11 @@ def stock_market():
         op_kwargs={'url': '{{ ti.xcom_pull(task_ids="is_api_available") }}', 'symbol': SYMBOL}
     )
 
+    store_prices = PythonOperator(
+        task_id = 'store_prices'
+        python_callable = _store_prices
+    )
+
     is_api_available() >> get_stock_prices
 
-stock_market()
+ stock_market()
