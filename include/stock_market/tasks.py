@@ -20,6 +20,15 @@ def _store_prices():
         secure = False
     )
     bucket_name = 'stock-market'
-    if not client.bucket_exists(bucket_name)
+    if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
-    stock 
+    stock = json.loads(stock)
+    symbol = stock['meta']['symbol']
+    data = json.dumps(stock, ensure_ascii = False).encode('utf8')
+    objw = client.put_object(
+        bucket_name = bucket_name,
+        object_name = f'{symbol}/prices.json',
+        data = BytesIO(data),
+        length = len(data)
+    )
+    return f'{objw.bucket_name}/{symbol}'
